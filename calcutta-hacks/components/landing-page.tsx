@@ -3,8 +3,23 @@
 import { WebGLShader } from "@/components/ui/web-gl-shader"
 import { CheckCircle2, Wallet, Lock, FileText, CheckSquare, Scale, Users, Briefcase, Shield } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useWallet } from "@/hooks/useWallet"
 
 export default function LandingPage() {
+  const router = useRouter()
+  const { isConnected } = useWallet()
+
+  const handleCreateEscrow = () => {
+    if (isConnected) {
+      // Already connected, go directly to create escrow
+      router.push("/dashboard/create")
+    } else {
+      // Not connected, go to connect page with redirect
+      router.push("/connect?redirect=/dashboard/create")
+    }
+  }
+
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden">
       <WebGLShader />
@@ -34,8 +49,8 @@ export default function LandingPage() {
               </span>
               <div className="absolute inset-0 -z-10 bg-gradient-to-r from-white/5 via-white/10 to-white/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
             </Link>
-            <Link
-              href="/dashboard/create"
+            <button
+              onClick={handleCreateEscrow}
               className="group relative min-w-[200px] overflow-hidden rounded-full border border-purple-400/40 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 px-8 py-4 text-white backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:border-purple-400/60 hover:shadow-[0_0_30px_rgba(168,85,247,0.3)]"
             >
               <span className="relative z-10 flex items-center justify-center font-medium">
@@ -43,10 +58,11 @@ export default function LandingPage() {
                 Create Escrow
               </span>
               <div className="absolute inset-0 -z-10 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-            </Link>
+            </button>
           </div>
         </div>
       </section>
+
 
       {/* How It Works Section */}
       <section className="relative z-10 bg-black/40 backdrop-blur-sm py-24 px-4">

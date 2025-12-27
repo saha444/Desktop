@@ -4,10 +4,13 @@ import { useWallet } from "@/hooks/useWallet"
 import { WebGLShader } from "@/components/ui/web-gl-shader"
 import { Wallet, AlertTriangle, CheckCircle2, Copy, ExternalLink, ArrowRight, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export default function ConnectWallet() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const redirectTo = searchParams.get("redirect") || "/dashboard"
+
     const {
         isConnected,
         address,
@@ -41,7 +44,7 @@ export default function ConnectWallet() {
 
     const handleContinue = () => {
         if (isConnected && isCorrectNetwork) {
-            router.push("/dashboard")
+            router.push(redirectTo)
         }
     }
 

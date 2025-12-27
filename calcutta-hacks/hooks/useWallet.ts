@@ -33,18 +33,26 @@ export function useWallet(): UseWalletReturn {
 
     const isCorrectNetwork = chainId === SEPOLIA_CHAIN_ID_DECIMAL;
 
-    // Check if wallet is already connected on mount
+    // Check current MetaMask state on mount
+    // This checks if wallet is CURRENTLY connected (not from saved state)
     useEffect(() => {
-        const checkConnection = async () => {
+        const checkCurrentConnection = async () => {
             if (typeof window === "undefined" || !window.ethereum) {
                 setIsInitialized(true);
                 return;
             }
 
             try {
-                const accounts = await window.ethereum.request({ method: "eth_accounts" }) as string[];
+                // eth_accounts returns currently connected accounts without prompting
+                // This detects if the wallet is actively connected in the current session
+                const accounts = await window.ethereum.request({
+                    method: "eth_accounts"
+                }) as string[];
+
                 if (accounts.length > 0) {
-                    const chainIdHex = await window.ethereum.request({ method: "eth_chainId" }) as string;
+                    const chainIdHex = await window.ethereum.request({
+                        method: "eth_chainId"
+                    }) as string;
                     setAddress(accounts[0]);
                     setChainId(parseInt(chainIdHex, 16));
                     setIsConnected(true);
@@ -56,7 +64,7 @@ export function useWallet(): UseWalletReturn {
             }
         };
 
-        checkConnection();
+        checkCurrentConnection();
     }, []);
 
     // Listen for account and chain changes
@@ -66,6 +74,7 @@ export function useWallet(): UseWalletReturn {
         const handleAccountsChanged = (accounts: unknown) => {
             const accountList = accounts as string[];
             if (accountList.length === 0) {
+                // User disconnected from MetaMask
                 setIsConnected(false);
                 setAddress(null);
                 setChainId(null);
@@ -97,7 +106,7 @@ export function useWallet(): UseWalletReturn {
                 throw new Error("Please install MetaMask to continue");
             }
 
-            // Request account access
+            // Always request fresh account access - this prompts MetaMask popup
             const accounts = await window.ethereum.request({
                 method: "eth_requestAccounts",
             }) as string[];

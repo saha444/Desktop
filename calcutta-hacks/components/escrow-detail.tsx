@@ -44,6 +44,8 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
     const [isActionLoading, setIsActionLoading] = useState(false)
     const [evidenceFile, setEvidenceFile] = useState<string>("")
     const [showDisputeWarning, setShowDisputeWarning] = useState(false)
+    const [showChallengeModal, setShowChallengeModal] = useState(false)
+    const [showAcceptLossModal, setShowAcceptLossModal] = useState(false)
 
     // Redirect to connect if not connected
     useEffect(() => {
@@ -85,6 +87,23 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
         setIsActionLoading(true)
         await new Promise((r) => setTimeout(r, 2000))
         setIsActionLoading(false)
+        setShowDisputeWarning(false)
+        refresh()
+    }
+
+    const handleAcceptLoss = async () => {
+        setIsActionLoading(true)
+        await new Promise((r) => setTimeout(r, 2000))
+        setIsActionLoading(false)
+        setShowAcceptLossModal(false)
+        refresh()
+    }
+
+    const handleChallenge = async () => {
+        setIsActionLoading(true)
+        await new Promise((r) => setTimeout(r, 2000))
+        setIsActionLoading(false)
+        setShowChallengeModal(false)
         refresh()
     }
 
@@ -268,8 +287,8 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
                                                 <span className="text-white/60">Time until deadline</span>
                                             </div>
                                             <span className={`text-lg font-bold ${escrow.deadline.getTime() - Date.now() < 24 * 60 * 60 * 1000
-                                                    ? "text-red-400"
-                                                    : "text-green-400"
+                                                ? "text-red-400"
+                                                : "text-green-400"
                                                 }`}>
                                                 {formatTimeRemaining(escrow.deadline)}
                                             </span>
@@ -439,6 +458,184 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
                                                 </button>
                                                 <button
                                                     onClick={() => setShowDisputeWarning(false)}
+                                                    className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white/60 hover:bg-white/5"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            )}
+
+                            {/* STATE: DISPUTE_OPEN - Client View (Initiated Dispute) */}
+                            {escrow.state === "DISPUTE_OPEN" && userRole === "client" && (
+                                <section className="mb-8 rounded-2xl border border-red-500/30 bg-gradient-to-r from-red-500/10 via-orange-500/10 to-red-500/10 p-6 backdrop-blur-xl">
+                                    <div className="mb-4 flex items-center gap-3">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/20">
+                                            <Scale className="h-5 w-5 text-red-400" />
+                                        </div>
+                                        <h2 className="text-lg font-bold text-white">Dispute Opened</h2>
+                                    </div>
+
+                                    <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4">
+                                        <p className="text-sm text-white/60">
+                                            You have opened a dispute on this milestone. Your bond of{" "}
+                                            <strong className="text-white">{escrow.bondValue} ETH</strong> has been locked.
+                                        </p>
+                                        <div className="mt-4 space-y-2">
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <Timer className="h-4 w-4 text-yellow-400" />
+                                                <span className="text-white/60">Waiting for freelancer response...</span>
+                                            </div>
+                                            <p className="text-xs text-white/40">
+                                                If the freelancer does not respond within 72 hours, you win by default and receive the milestone funds.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+                                        <p className="text-sm text-yellow-300">
+                                            <strong>Possible Outcomes:</strong>
+                                        </p>
+                                        <ul className="mt-2 space-y-1 text-xs text-white/60">
+                                            <li>• Freelancer accepts loss → You receive milestone + your bond back</li>
+                                            <li>• Freelancer challenges → Market opens for community resolution</li>
+                                            <li>• No response (72h) → You win by default</li>
+                                        </ul>
+                                    </div>
+                                </section>
+                            )}
+
+                            {/* STATE: DISPUTE_OPEN - Freelancer View (Respond to Dispute) */}
+                            {escrow.state === "DISPUTE_OPEN" && userRole === "freelancer" && (
+                                <section className="mb-8 rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/10 via-red-500/10 to-orange-500/10 p-6 backdrop-blur-xl">
+                                    <div className="mb-4 flex items-center gap-3">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20">
+                                            <Scale className="h-5 w-5 text-orange-400" />
+                                        </div>
+                                        <h2 className="text-lg font-bold text-white">Dispute Opened Against You</h2>
+                                    </div>
+
+                                    <div className="mb-6 space-y-4">
+                                        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+                                            <div className="flex items-start gap-3">
+                                                <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
+                                                <div>
+                                                    <p className="font-medium text-red-300">Action Required</p>
+                                                    <p className="mt-1 text-sm text-white/60">
+                                                        The client has disputed this milestone. You must respond or lose your payment.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                                            <p className="mb-2 text-sm font-medium text-white">Milestone Summary:</p>
+                                            <div className="space-y-2 text-sm text-white/60">
+                                                <div className="flex justify-between">
+                                                    <span>Milestone Value</span>
+                                                    <span className="text-white">{escrow.milestoneValue} ETH</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>Client's Bond (Locked)</span>
+                                                    <span className="text-white">{escrow.bondValue} ETH</span>
+                                                </div>
+                                                <div className="flex justify-between border-t border-white/10 pt-2">
+                                                    <span>Your Bond (To Challenge)</span>
+                                                    <span className="font-medium text-orange-400">{escrow.bondValue} ETH</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3 sm:flex-row">
+                                        <button
+                                            onClick={() => setShowAcceptLossModal(true)}
+                                            disabled={isActionLoading}
+                                            className="flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 font-semibold text-white/60 transition-all hover:bg-white/10 disabled:opacity-50"
+                                        >
+                                            <Ban className="h-5 w-5" />
+                                            Accept Loss
+                                        </button>
+
+                                        <button
+                                            onClick={() => setShowChallengeModal(true)}
+                                            disabled={isActionLoading}
+                                            className="group flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 font-semibold text-white transition-all hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] disabled:opacity-50"
+                                        >
+                                            <Shield className="h-5 w-5" />
+                                            Challenge (Match Bond)
+                                            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                                        </button>
+                                    </div>
+
+                                    {/* Accept Loss Confirmation Modal */}
+                                    {showAcceptLossModal && (
+                                        <div className="mt-6 rounded-xl border border-white/20 bg-white/5 p-4">
+                                            <p className="mb-4 text-sm text-white/60">
+                                                By accepting the loss, you forfeit the milestone payment of{" "}
+                                                <strong className="text-white">{escrow.milestoneValue} ETH</strong> which will be returned to the client.
+                                            </p>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={handleAcceptLoss}
+                                                    disabled={isActionLoading}
+                                                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-white/20"
+                                                >
+                                                    {isActionLoading ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <>Confirm: Accept Loss</>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowAcceptLossModal(false)}
+                                                    className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white/60 hover:bg-white/5"
+                                                >
+                                                    Back
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Challenge Confirmation Modal */}
+                                    {showChallengeModal && (
+                                        <div className="mt-6 rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
+                                            <div className="mb-4">
+                                                <p className="font-medium text-orange-300">Challenge Dispute</p>
+                                                <p className="mt-1 text-sm text-white/60">
+                                                    To challenge, you must match the client's bond.
+                                                </p>
+                                            </div>
+
+                                            <div className="mb-4 rounded-lg border border-white/10 bg-white/5 p-3">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-white/60">Bond Required</span>
+                                                    <span className="font-bold text-white">{escrow.bondValue} ETH</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="mb-4 space-y-2 text-xs text-white/60">
+                                                <p><strong className="text-green-400">If you win:</strong> You receive milestone + both bonds</p>
+                                                <p><strong className="text-red-400">If you lose:</strong> Client receives milestone + both bonds</p>
+                                                <p><strong className="text-blue-400">What happens:</strong> A prediction market opens for community resolution</p>
+                                            </div>
+
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={handleChallenge}
+                                                    disabled={isActionLoading}
+                                                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 px-4 py-2 text-sm font-medium text-white transition-all hover:shadow-lg"
+                                                >
+                                                    {isActionLoading ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <>Match Bond & Open Market ({escrow.bondValue} ETH)</>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowChallengeModal(false)}
                                                     className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white/60 hover:bg-white/5"
                                                 >
                                                     Cancel

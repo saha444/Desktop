@@ -2,6 +2,7 @@
 
 import { WebGLShader } from "@/components/ui/web-gl-shader"
 import { CheckCircle2, Wallet, Lock, FileText, CheckSquare, Scale, Users, Briefcase, Shield } from "lucide-react"
+import Link from "next/link"
 
 export default function LandingPage() {
   return (
@@ -15,7 +16,7 @@ export default function LandingPage() {
             Payments that stay fair
             <br />
             <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              when people don't.
+              when people don&apos;t.
             </span>
           </h1>
           <p className="mb-12 text-lg text-white/80 md:text-xl">
@@ -23,7 +24,8 @@ export default function LandingPage() {
             Fair for everyone, always.
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <button
+            <Link
+              href="/connect"
               className="group relative min-w-[200px] overflow-hidden rounded-full border border-white/30 bg-white/10 px-8 py-4 text-white backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:border-white/50 hover:bg-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
             >
               <span className="relative z-10 flex items-center justify-center font-medium">
@@ -31,8 +33,9 @@ export default function LandingPage() {
                 Connect Wallet
               </span>
               <div className="absolute inset-0 -z-10 bg-gradient-to-r from-white/5 via-white/10 to-white/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-            </button>
-            <button
+            </Link>
+            <Link
+              href="/dashboard/create"
               className="group relative min-w-[200px] overflow-hidden rounded-full border border-purple-400/40 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 px-8 py-4 text-white backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:border-purple-400/60 hover:shadow-[0_0_30px_rgba(168,85,247,0.3)]"
             >
               <span className="relative z-10 flex items-center justify-center font-medium">
@@ -40,7 +43,7 @@ export default function LandingPage() {
                 Create Escrow
               </span>
               <div className="absolute inset-0 -z-10 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -130,7 +133,7 @@ export default function LandingPage() {
                     <h3 className="text-2xl font-bold text-white">Approve or Dispute</h3>
                   </div>
                   <p className="text-white/80">
-                    Client can approve and release payment, or raise a dispute if work doesn't meet agreed standards.
+                    Client can approve and release payment, or raise a dispute if work doesn&apos;t meet agreed standards.
                   </p>
                 </div>
                 <div className="absolute left-1/2 z-20 -translate-x-1/2 md:relative md:left-auto md:translate-x-0">

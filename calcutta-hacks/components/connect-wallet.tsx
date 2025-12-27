@@ -158,8 +158,8 @@ export default function ConnectWallet() {
                                 {/* Network Status */}
                                 <div
                                     className={`flex items-center justify-between rounded-xl border p-4 ${isCorrectNetwork
-                                            ? "border-green-500/30 bg-green-500/10"
-                                            : "border-red-500/30 bg-red-500/10"
+                                        ? "border-green-500/30 bg-green-500/10"
+                                        : "border-red-500/30 bg-red-500/10"
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">

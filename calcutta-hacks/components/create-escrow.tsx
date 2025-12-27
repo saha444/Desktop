@@ -34,10 +34,10 @@ function StepIndicator({ step, currentStep }: { step: number; currentStep: numbe
         <div className="flex items-center">
             <div
                 className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${isComplete
-                        ? "border-green-500 bg-green-500/20 text-green-400"
-                        : isActive
-                            ? "border-purple-500 bg-purple-500/20 text-purple-400"
-                            : "border-white/20 bg-white/5 text-white/40"
+                    ? "border-green-500 bg-green-500/20 text-green-400"
+                    : isActive
+                        ? "border-purple-500 bg-purple-500/20 text-purple-400"
+                        : "border-white/20 bg-white/5 text-white/40"
                     }`}
             >
                 {isComplete ? <Check className="h-5 w-5" /> : step}
@@ -63,7 +63,7 @@ function RiskBadge({ level }: { level: RiskLevel }) {
 
 export default function CreateEscrow() {
     const router = useRouter()
-    const { isConnected, address } = useWallet()
+    const { isConnected, address, isInitialized } = useWallet()
     const {
         currentStep,
         setStep,
@@ -84,12 +84,12 @@ export default function CreateEscrow() {
 
     const [deploySuccess, setDeploySuccess] = useState<string | null>(null)
 
-    // Redirect to connect if not connected
+    // Redirect to connect if not connected (only after initialized)
     useEffect(() => {
-        if (!isConnected) {
+        if (isInitialized && !isConnected) {
             router.push("/connect")
         }
-    }, [isConnected, router])
+    }, [isConnected, isInitialized, router])
 
     const handleNext = async () => {
         if (currentStep === 1) {
@@ -107,6 +107,18 @@ export default function CreateEscrow() {
                 }, 2000)
             }
         }
+    }
+
+    // Show loading while wallet initializes
+    if (!isInitialized) {
+        return (
+            <div className="relative min-h-screen w-full overflow-x-hidden">
+                <WebGLShader />
+                <div className="relative z-10 flex min-h-screen items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+                </div>
+            </div>
+        )
     }
 
     if (!isConnected) {
@@ -170,8 +182,8 @@ export default function CreateEscrow() {
                                             value={formData.counterpartyAddress}
                                             onChange={(e) => updateFormData({ counterpartyAddress: e.target.value })}
                                             className={`w-full rounded-xl border bg-white/5 py-3 pl-12 pr-4 font-mono text-sm text-white placeholder-white/30 transition-all focus:outline-none focus:ring-2 ${formErrors.counterpartyAddress
-                                                    ? "border-red-500/50 focus:ring-red-500/50"
-                                                    : "border-white/20 focus:border-purple-500/50 focus:ring-purple-500/50"
+                                                ? "border-red-500/50 focus:ring-red-500/50"
+                                                : "border-white/20 focus:border-purple-500/50 focus:ring-purple-500/50"
                                                 }`}
                                         />
                                     </div>
@@ -191,8 +203,8 @@ export default function CreateEscrow() {
                                         onChange={(e) => updateFormData({ description: e.target.value })}
                                         rows={4}
                                         className={`w-full rounded-xl border bg-white/5 p-4 text-sm text-white placeholder-white/30 transition-all focus:outline-none focus:ring-2 ${formErrors.description
-                                                ? "border-red-500/50 focus:ring-red-500/50"
-                                                : "border-white/20 focus:border-purple-500/50 focus:ring-purple-500/50"
+                                            ? "border-red-500/50 focus:ring-red-500/50"
+                                            : "border-white/20 focus:border-purple-500/50 focus:ring-purple-500/50"
                                             }`}
                                     />
                                     {formErrors.description && (
@@ -212,8 +224,8 @@ export default function CreateEscrow() {
                                             value={formData.deadline}
                                             onChange={(e) => updateFormData({ deadline: e.target.value })}
                                             className={`w-full rounded-xl border bg-white/5 py-3 pl-12 pr-4 text-sm text-white transition-all focus:outline-none focus:ring-2 ${formErrors.deadline
-                                                    ? "border-red-500/50 focus:ring-red-500/50"
-                                                    : "border-white/20 focus:border-purple-500/50 focus:ring-purple-500/50"
+                                                ? "border-red-500/50 focus:ring-red-500/50"
+                                                : "border-white/20 focus:border-purple-500/50 focus:ring-purple-500/50"
                                                 }`}
                                         />
                                     </div>
@@ -236,8 +248,8 @@ export default function CreateEscrow() {
                                             value={formData.milestoneValue}
                                             onChange={(e) => updateFormData({ milestoneValue: e.target.value })}
                                             className={`w-full rounded-xl border bg-white/5 py-3 pl-12 pr-4 text-sm text-white placeholder-white/30 transition-all focus:outline-none focus:ring-2 ${formErrors.milestoneValue
-                                                    ? "border-red-500/50 focus:ring-red-500/50"
-                                                    : "border-white/20 focus:border-purple-500/50 focus:ring-purple-500/50"
+                                                ? "border-red-500/50 focus:ring-red-500/50"
+                                                : "border-white/20 focus:border-purple-500/50 focus:ring-purple-500/50"
                                                 }`}
                                         />
                                     </div>
@@ -277,10 +289,10 @@ export default function CreateEscrow() {
                                             <div className="mb-2 h-3 overflow-hidden rounded-full bg-white/10">
                                                 <div
                                                     className={`h-full transition-all ${riskScan.riskLevel === "LOW"
-                                                            ? "bg-green-500"
-                                                            : riskScan.riskLevel === "MEDIUM"
-                                                                ? "bg-yellow-500"
-                                                                : "bg-red-500"
+                                                        ? "bg-green-500"
+                                                        : riskScan.riskLevel === "MEDIUM"
+                                                            ? "bg-yellow-500"
+                                                            : "bg-red-500"
                                                         }`}
                                                     style={{ width: `${riskScan.score}%` }}
                                                 />
@@ -298,15 +310,15 @@ export default function CreateEscrow() {
                                                     <div
                                                         key={issue.id}
                                                         className={`rounded-xl border p-4 ${issue.type === "error"
-                                                                ? "border-red-500/30 bg-red-500/10"
-                                                                : "border-yellow-500/30 bg-yellow-500/10"
+                                                            ? "border-red-500/30 bg-red-500/10"
+                                                            : "border-yellow-500/30 bg-yellow-500/10"
                                                             }`}
                                                     >
                                                         <div className="flex items-start gap-3">
                                                             <AlertCircle
                                                                 className={`mt-0.5 h-5 w-5 flex-shrink-0 ${issue.type === "error"
-                                                                        ? "text-red-400"
-                                                                        : "text-yellow-400"
+                                                                    ? "text-red-400"
+                                                                    : "text-yellow-400"
                                                                     }`}
                                                             />
                                                             <div>

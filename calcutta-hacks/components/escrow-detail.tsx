@@ -38,7 +38,7 @@ interface EscrowDetailProps {
 
 export default function EscrowDetail({ address }: EscrowDetailProps) {
     const router = useRouter()
-    const { isConnected } = useWallet()
+    const { isConnected, isInitialized } = useWallet()
     const { escrow, isLoading, error, userRole, refresh } = useEscrowDetail(address)
     const [copiedField, setCopiedField] = useState<string | null>(null)
     const [isActionLoading, setIsActionLoading] = useState(false)
@@ -47,12 +47,12 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
     const [showChallengeModal, setShowChallengeModal] = useState(false)
     const [showAcceptLossModal, setShowAcceptLossModal] = useState(false)
 
-    // Redirect to connect if not connected
+    // Redirect to connect if not connected (only after initialized)
     useEffect(() => {
-        if (!isConnected) {
+        if (isInitialized && !isConnected) {
             router.push("/connect")
         }
-    }, [isConnected, router])
+    }, [isConnected, isInitialized, router])
 
     const copyToClipboard = async (text: string, field: string) => {
         await navigator.clipboard.writeText(text)
@@ -105,6 +105,18 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
         setIsActionLoading(false)
         setShowChallengeModal(false)
         refresh()
+    }
+
+    // Show loading while wallet initializes
+    if (!isInitialized) {
+        return (
+            <div className="relative min-h-screen w-full overflow-x-hidden">
+                <WebGLShader />
+                <div className="relative z-10 flex min-h-screen items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+                </div>
+            </div>
+        )
     }
 
     if (!isConnected) {
@@ -431,60 +443,20 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
                                         </button>
                                     </div>
 
-                                    {/* Dispute Warning Modal - Full UX Copy Guidelines */}
+                                    {/* Dispute Warning Modal */}
                                     {showDisputeWarning && (
-                                        <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-5">
+                                        <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
                                             <div className="mb-4 flex items-start gap-3">
                                                 <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" />
                                                 <div>
-                                                    <p className="font-bold text-red-300">⚠️ Important: Understand Before You Dispute</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="mb-4 space-y-3 text-sm">
-                                                {/* What you're risking */}
-                                                <div>
-                                                    <p className="font-medium text-white">What You're Risking:</p>
-                                                    <p className="mt-1 text-white/70">
-                                                        Your dispute bond of <strong className="text-yellow-400">{escrow.bondValue} ETH</strong> (30% of milestone value)
-                                                    </p>
-                                                </div>
-
-                                                {/* What you can lose */}
-                                                <div>
-                                                    <p className="font-medium text-red-300">❌ What You Can Lose:</p>
-                                                    <ul className="mt-1 space-y-1 text-white/70">
-                                                        <li>• Your entire bond ({escrow.bondValue} ETH) if you lose</li>
-                                                        <li>• The milestone payment still goes to the freelancer</li>
-                                                    </ul>
-                                                </div>
-
-                                                {/* What you can gain */}
-                                                <div>
-                                                    <p className="font-medium text-green-300">✅ What You Can Gain:</p>
-                                                    <ul className="mt-1 space-y-1 text-white/70">
-                                                        <li>• Your milestone payment back ({escrow.milestoneValue} ETH)</li>
-                                                        <li>• Both bonds if freelancer doesn't challenge or you win</li>
-                                                    </ul>
-                                                </div>
-
-                                                {/* AI disclosure */}
-                                                <div className="border-t border-white/10 pt-3">
-                                                    <p className="font-medium text-blue-300">🤖 AI Does NOT Decide:</p>
-                                                    <p className="mt-1 text-white/70">
-                                                        Resolution is determined by community prediction market.
-                                                        AI may analyze evidence but has <strong className="text-white">no voting power</strong>.
+                                                    <p className="font-medium text-red-300">Dispute Warning</p>
+                                                    <p className="mt-1 text-sm text-white/60">
+                                                        Disputing requires posting a <strong className="text-white">30% bond ({escrow.bondValue} ETH)</strong>.
+                                                        If you don't dispute, funds will auto-release to the freelancer after the deadline.
                                                     </p>
                                                 </div>
                                             </div>
-
                                             <div className="flex gap-3">
-                                                <button
-                                                    onClick={() => setShowDisputeWarning(false)}
-                                                    className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white/60 hover:bg-white/5"
-                                                >
-                                                    Cancel
-                                                </button>
                                                 <button
                                                     onClick={handleDispute}
                                                     disabled={isActionLoading}
@@ -493,8 +465,14 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
                                                     {isActionLoading ? (
                                                         <Loader2 className="h-4 w-4 animate-spin" />
                                                     ) : (
-                                                        <>I Understand — Dispute ({escrow.bondValue} ETH)</>
+                                                        <>Confirm Dispute (Pay {escrow.bondValue} ETH)</>
                                                     )}
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowDisputeWarning(false)}
+                                                    className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white/60 hover:bg-white/5"
+                                                >
+                                                    Cancel
                                                 </button>
                                             </div>
                                         </div>
@@ -633,61 +611,30 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
                                         </div>
                                     )}
 
-                                    {/* Challenge Confirmation Modal - Full UX Copy Guidelines */}
+                                    {/* Challenge Confirmation Modal */}
                                     {showChallengeModal && (
-                                        <div className="mt-6 rounded-xl border border-orange-500/30 bg-orange-500/10 p-5">
-                                            <div className="mb-4 flex items-start gap-3">
-                                                <Shield className="mt-0.5 h-5 w-5 flex-shrink-0 text-orange-400" />
-                                                <p className="font-bold text-orange-300">⚠️ Important: Understand Before You Challenge</p>
+                                        <div className="mt-6 rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
+                                            <div className="mb-4">
+                                                <p className="font-medium text-orange-300">Challenge Dispute</p>
+                                                <p className="mt-1 text-sm text-white/60">
+                                                    To challenge, you must match the client's bond.
+                                                </p>
                                             </div>
 
-                                            <div className="mb-4 space-y-3 text-sm">
-                                                {/* What you're risking */}
-                                                <div>
-                                                    <p className="font-medium text-white">What You're Risking:</p>
-                                                    <p className="mt-1 text-white/70">
-                                                        Your matching bond of <strong className="text-yellow-400">{escrow.bondValue} ETH</strong> (30% of milestone value)
-                                                    </p>
+                                            <div className="mb-4 rounded-lg border border-white/10 bg-white/5 p-3">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-white/60">Bond Required</span>
+                                                    <span className="font-bold text-white">{escrow.bondValue} ETH</span>
                                                 </div>
+                                            </div>
 
-                                                {/* What you can lose */}
-                                                <div>
-                                                    <p className="font-medium text-red-300">❌ What You Can Lose:</p>
-                                                    <ul className="mt-1 space-y-1 text-white/70">
-                                                        <li>• Your entire bond ({escrow.bondValue} ETH)</li>
-                                                        <li>• Your milestone payment ({escrow.milestoneValue} ETH)</li>
-                                                        <li>• <strong className="text-red-300">Total potential loss: {(parseFloat(escrow.milestoneValue) + parseFloat(escrow.bondValue)).toFixed(3)} ETH</strong></li>
-                                                    </ul>
-                                                </div>
-
-                                                {/* What you can gain */}
-                                                <div>
-                                                    <p className="font-medium text-green-300">✅ What You Can Gain:</p>
-                                                    <ul className="mt-1 space-y-1 text-white/70">
-                                                        <li>• Your milestone payment ({escrow.milestoneValue} ETH)</li>
-                                                        <li>• Both bonds ({(parseFloat(escrow.bondValue) * 2).toFixed(3)} ETH)</li>
-                                                        <li>• <strong className="text-green-300">Total potential gain: {(parseFloat(escrow.milestoneValue) + parseFloat(escrow.bondValue) * 2).toFixed(3)} ETH</strong></li>
-                                                    </ul>
-                                                </div>
-
-                                                {/* AI disclosure */}
-                                                <div className="border-t border-white/10 pt-3">
-                                                    <p className="font-medium text-blue-300">🤖 AI Does NOT Decide:</p>
-                                                    <p className="mt-1 text-white/70">
-                                                        A prediction market opens for community resolution.
-                                                        AI may analyze evidence but has <strong className="text-white">no voting power</strong> and
-                                                        <strong className="text-white"> cannot override the market outcome</strong>.
-                                                    </p>
-                                                </div>
+                                            <div className="mb-4 space-y-2 text-xs text-white/60">
+                                                <p><strong className="text-green-400">If you win:</strong> You receive milestone + both bonds</p>
+                                                <p><strong className="text-red-400">If you lose:</strong> Client receives milestone + both bonds</p>
+                                                <p><strong className="text-blue-400">What happens:</strong> A prediction market opens for community resolution</p>
                                             </div>
 
                                             <div className="flex gap-3">
-                                                <button
-                                                    onClick={() => setShowChallengeModal(false)}
-                                                    className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white/60 hover:bg-white/5"
-                                                >
-                                                    Cancel
-                                                </button>
                                                 <button
                                                     onClick={handleChallenge}
                                                     disabled={isActionLoading}
@@ -696,8 +643,14 @@ export default function EscrowDetail({ address }: EscrowDetailProps) {
                                                     {isActionLoading ? (
                                                         <Loader2 className="h-4 w-4 animate-spin" />
                                                     ) : (
-                                                        <>I Understand — Challenge ({escrow.bondValue} ETH)</>
+                                                        <>Match Bond & Open Market ({escrow.bondValue} ETH)</>
                                                     )}
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowChallengeModal(false)}
+                                                    className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white/60 hover:bg-white/5"
+                                                >
+                                                    Cancel
                                                 </button>
                                             </div>
                                         </div>

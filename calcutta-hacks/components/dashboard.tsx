@@ -130,8 +130,8 @@ function DisputeMarketCard({ market }: { market: DisputeMarket }) {
                 </p>
                 <span
                     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium ${market.yourVote === "FREELANCER"
-                            ? "border-orange-500/30 bg-orange-500/20 text-orange-300"
-                            : "border-cyan-500/30 bg-cyan-500/20 text-cyan-300"
+                        ? "border-orange-500/30 bg-orange-500/20 text-orange-300"
+                        : "border-cyan-500/30 bg-cyan-500/20 text-cyan-300"
                         }`}
                 >
                     {market.yourVote === "FREELANCER" ? (
@@ -203,15 +203,27 @@ function DisputeMarketCard({ market }: { market: DisputeMarket }) {
 
 export default function Dashboard() {
     const router = useRouter()
-    const { isConnected, address } = useWallet()
+    const { isConnected, address, isInitialized } = useWallet()
     const { escrows, disputeMarkets, isLoading, error, refresh } = useDashboard()
 
-    // Redirect to connect page if not connected
+    // Redirect to connect page if not connected (only after wallet is initialized)
     useEffect(() => {
-        if (!isConnected) {
+        if (isInitialized && !isConnected) {
             router.push("/connect")
         }
-    }, [isConnected, router])
+    }, [isConnected, isInitialized, router])
+
+    // Show loading while wallet is initializing
+    if (!isInitialized) {
+        return (
+            <div className="relative min-h-screen w-full overflow-x-hidden">
+                <WebGLShader />
+                <div className="relative z-10 flex min-h-screen items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+                </div>
+            </div>
+        )
+    }
 
     if (!isConnected) {
         return null

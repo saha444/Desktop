@@ -1,6 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { BrowserProvider, ethers } from "ethers";
+import { useWallet } from "./useWallet";
+import {
+    getDisputeModule,
+    getDisputeDetails,
+    DisputeState,
+    Vote,
+    formatEth,
+} from "@/lib/contracts";
 
 export interface MarketOutcome {
     label: string;
@@ -37,9 +46,10 @@ export interface UseDisputeMarketReturn {
     getTimeWeightedImpact: () => { multiplier: string; effectiveEth: string };
     getPotentialPayout: () => string;
     refresh: () => Promise<void>;
+    isContractData: boolean;
 }
 
-// Generate mock market data
+// Generate mock market data (fallback)
 function generateMockMarket(id: string): DisputeMarketData {
     const idNum = parseInt(id, 10) || parseInt(id.slice(-8), 16) || 1;
     const now = Date.now();
@@ -90,13 +100,22 @@ function generateMockMarket(id: string): DisputeMarketData {
 }
 
 export function useDisputeMarket(marketId: string): UseDisputeMarketReturn {
+    const { isConnected, isCorrectNetwork } = useWallet();
     const [market, setMarket] = useState<DisputeMarketData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isContractData, setIsContractData] = useState(false);
 
     const [depositAmount, setDepositAmount] = useState("");
     const [selectedOutcome, setSelectedOutcome] = useState<"YES" | "NO" | null>(null);
     const [isDepositing, setIsDepositing] = useState(false);
+
+    const getProvider = useCallback((): BrowserProvider | null => {
+        if (typeof window === "undefined" || !window.ethereum) {
+            return null;
+        }
+        return new BrowserProvider(window.ethereum);
+    }, []);
 
     const fetchMarket = useCallback(async () => {
         if (!marketId) {
@@ -109,15 +128,95 @@ export function useDisputeMarket(marketId: string): UseDisputeMarketReturn {
         setError(null);
 
         try {
-            await new Promise((r) => setTimeout(r, 500));
+            const provider = getProvider();
+            const disputeId = parseInt(marketId, 10);
+
+            // Try to fetch real data from contract if connected
+            if (provider && isConnected && isCorrectNetwork && !isNaN(disputeId)) {
+                try {
+                    console.log("Fetching dispute details from contract:", disputeId);
+                    const dispute = await getDisputeDetails(provider, disputeId);
+
+                    // Map contract state to UI status
+                    let status: "ACTIVE" | "RESOLVED" | "EXPIRED";
+                    let winningOutcome: "YES" | "NO" | null = null;
+
+                    switch (dispute.state) {
+                        case DisputeState.ACTIVE:
+                            status = "ACTIVE";
+                            break;
+                        case DisputeState.RESOLVED:
+                            status = "RESOLVED";
+                            // Outcome: 1 = Freelancer wins (YES), 2 = Client wins (NO)
+                            winningOutcome = dispute.outcome === Vote.FREELANCER ? "YES" : "NO";
+                            break;
+                        default:
+                            status = "EXPIRED";
+                    }
+
+                    const votingStartTime = Number(dispute.votingStartTime);
+                    const votingEndTime = Number(dispute.votingEndTime);
+
+                    const yesTotalEth = formatEth(dispute.totalStakedForFreelancer);
+                    const noTotalEth = formatEth(dispute.totalStakedForClient);
+
+                    // Simple weighted calculation (for real implementation would need block timestamps)
+                    const yesWeighted = yesTotalEth;
+                    const noWeighted = noTotalEth;
+
+                    const totalWeighted = parseFloat(yesWeighted) + parseFloat(noWeighted);
+                    const yesPercent = totalWeighted > 0
+                        ? Math.round((parseFloat(yesWeighted) / totalWeighted) * 100)
+                        : 50;
+                    const noPercent = 100 - yesPercent;
+
+                    const marketData: DisputeMarketData = {
+                        id: marketId,
+                        escrowAddress: dispute.escrowContract,
+                        question: "Was the milestone completed as specified?",
+                        status,
+                        createdAt: new Date(votingStartTime * 1000),
+                        deadline: new Date(votingEndTime * 1000),
+                        yesOutcome: {
+                            label: "YES",
+                            description: "Freelancer Completed Work",
+                            totalEth: yesTotalEth,
+                            weightedEth: yesWeighted,
+                            percentageShare: yesPercent,
+                        },
+                        noOutcome: {
+                            label: "NO",
+                            description: "Milestone Not Completed",
+                            totalEth: noTotalEth,
+                            weightedEth: noWeighted,
+                            percentageShare: noPercent,
+                        },
+                        clientBond: formatEth(dispute.clientBond),
+                        freelancerBond: formatEth(dispute.freelancerBond),
+                        winningOutcome,
+                    };
+
+                    setMarket(marketData);
+                    setIsContractData(true);
+                    console.log("Loaded dispute market from contract:", marketData);
+                    return;
+                } catch (contractError) {
+                    console.warn("Failed to fetch dispute from contract, falling back to mock:", contractError);
+                }
+            }
+
+            // Fallback to mock data
+            console.log("Using mock dispute market data for:", marketId);
             const mockMarket = generateMockMarket(marketId);
             setMarket(mockMarket);
+            setIsContractData(false);
+
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to fetch market");
         } finally {
             setIsLoading(false);
         }
-    }, [marketId]);
+    }, [marketId, getProvider, isConnected, isCorrectNetwork]);
 
     useEffect(() => {
         fetchMarket();
@@ -131,7 +230,7 @@ export function useDisputeMarket(marketId: string): UseDisputeMarketReturn {
         const now = Date.now();
         const timeRemaining = market.deadline.getTime() - now;
         const totalDuration = market.deadline.getTime() - market.createdAt.getTime();
-        const percentRemaining = timeRemaining / totalDuration;
+        const percentRemaining = Math.max(0, timeRemaining / totalDuration);
 
         // Earlier deposits get higher multiplier (1.0 - 2.0x)
         const multiplier = 1 + percentRemaining;
@@ -164,17 +263,42 @@ export function useDisputeMarket(marketId: string): UseDisputeMarketReturn {
     const deposit = useCallback(async () => {
         if (!depositAmount || !selectedOutcome) return;
 
+        const provider = getProvider();
+        if (!provider || !isConnected || !isCorrectNetwork) {
+            setError("Wallet not connected or wrong network");
+            return;
+        }
+
         setIsDepositing(true);
         try {
-            await new Promise((r) => setTimeout(r, 2000));
+            const disputeId = parseInt(marketId, 10);
+
+            if (!isNaN(disputeId) && isContractData) {
+                // Real contract vote
+                const disputeModule = await getDisputeModule(provider);
+                const vote = selectedOutcome === "YES" ? Vote.FREELANCER : Vote.CLIENT;
+                const tx = await disputeModule.vote(disputeId, vote, {
+                    value: ethers.parseEther(depositAmount)
+                });
+                console.log("Vote transaction submitted:", tx.hash);
+                await tx.wait();
+                console.log("Vote confirmed!");
+            } else {
+                // Mock deposit
+                await new Promise((r) => setTimeout(r, 2000));
+            }
+
             // Reset form
             setDepositAmount("");
             setSelectedOutcome(null);
             await fetchMarket();
+        } catch (err) {
+            console.error("Deposit failed:", err);
+            setError(err instanceof Error ? err.message : "Deposit failed");
         } finally {
             setIsDepositing(false);
         }
-    }, [depositAmount, selectedOutcome, fetchMarket]);
+    }, [depositAmount, selectedOutcome, fetchMarket, getProvider, isConnected, isCorrectNetwork, marketId, isContractData]);
 
     return {
         market,
@@ -189,6 +313,7 @@ export function useDisputeMarket(marketId: string): UseDisputeMarketReturn {
         getTimeWeightedImpact,
         getPotentialPayout,
         refresh: fetchMarket,
+        isContractData,
     };
 }
 

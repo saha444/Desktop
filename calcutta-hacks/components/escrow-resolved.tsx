@@ -187,19 +187,19 @@ function generateMockResolutionData(address: string) {
 
 export default function EscrowResolved({ address }: EscrowResolvedProps) {
     const router = useRouter()
-    const { isConnected } = useWallet()
+    const { isConnected, isInitialized } = useWallet()
     const { escrow, isLoading, error, userRole } = useEscrowDetail(address)
     const [copiedField, setCopiedField] = useState<string | null>(null)
 
     // Generate resolution data
     const resolutionData = generateMockResolutionData(address)
 
-    // Redirect to connect if not connected
+    // Redirect to connect if not connected (only after initialized)
     useEffect(() => {
-        if (!isConnected) {
+        if (isInitialized && !isConnected) {
             router.push("/connect")
         }
-    }, [isConnected, router])
+    }, [isConnected, isInitialized, router])
 
     const copyToClipboard = async (text: string, field: string) => {
         await navigator.clipboard.writeText(text)
@@ -225,6 +225,18 @@ export default function EscrowResolved({ address }: EscrowResolvedProps) {
             case "RESOLVED": return <CheckCircle2 className="h-4 w-4 text-purple-400" />
             case "PAYOUT": return <ArrowUpRight className="h-4 w-4 text-green-400" />
         }
+    }
+
+    // Show loading while wallet initializes
+    if (!isInitialized) {
+        return (
+            <div className="relative min-h-screen w-full overflow-x-hidden">
+                <WebGLShader />
+                <div className="relative z-10 flex min-h-screen items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-white/60" />
+                </div>
+            </div>
+        )
     }
 
     if (!isConnected) {
@@ -326,8 +338,8 @@ export default function EscrowResolved({ address }: EscrowResolvedProps) {
                                 </h2>
 
                                 <div className={`rounded-2xl border-2 p-6 ${resolutionData.winningOutcome === "YES"
-                                        ? "border-green-500/50 bg-gradient-to-br from-green-500/10 to-emerald-500/5"
-                                        : "border-red-500/50 bg-gradient-to-br from-red-500/10 to-orange-500/5"
+                                    ? "border-green-500/50 bg-gradient-to-br from-green-500/10 to-emerald-500/5"
+                                    : "border-red-500/50 bg-gradient-to-br from-red-500/10 to-orange-500/5"
                                     }`}>
                                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="flex items-center gap-4">
@@ -485,8 +497,8 @@ export default function EscrowResolved({ address }: EscrowResolvedProps) {
                                             <div
                                                 key={index}
                                                 className={`flex items-center justify-between rounded-xl border p-4 ${payout.type === "PROTOCOL_FEE"
-                                                        ? "border-white/10 bg-white/5"
-                                                        : "border-green-500/20 bg-green-500/5"
+                                                    ? "border-white/10 bg-white/5"
+                                                    : "border-green-500/20 bg-green-500/5"
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">

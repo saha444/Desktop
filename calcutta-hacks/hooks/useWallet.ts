@@ -13,6 +13,7 @@ export interface WalletState {
     chainId: number | null;
     isCorrectNetwork: boolean;
     isLoading: boolean;
+    isInitialized: boolean;
     error: string | null;
 }
 
@@ -27,6 +28,7 @@ export function useWallet(): UseWalletReturn {
     const [address, setAddress] = useState<string | null>(null);
     const [chainId, setChainId] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const isCorrectNetwork = chainId === SEPOLIA_CHAIN_ID_DECIMAL;
@@ -34,7 +36,10 @@ export function useWallet(): UseWalletReturn {
     // Check if wallet is already connected on mount
     useEffect(() => {
         const checkConnection = async () => {
-            if (typeof window === "undefined" || !window.ethereum) return;
+            if (typeof window === "undefined" || !window.ethereum) {
+                setIsInitialized(true);
+                return;
+            }
 
             try {
                 const accounts = await window.ethereum.request({ method: "eth_accounts" }) as string[];
@@ -46,6 +51,8 @@ export function useWallet(): UseWalletReturn {
                 }
             } catch (err) {
                 console.error("Failed to check wallet connection:", err);
+            } finally {
+                setIsInitialized(true);
             }
         };
 
@@ -171,6 +178,7 @@ export function useWallet(): UseWalletReturn {
         chainId,
         isCorrectNetwork,
         isLoading,
+        isInitialized,
         error,
         connect,
         disconnect,

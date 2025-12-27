@@ -274,7 +274,7 @@ export function useCreateEscrow(): UseCreateEscrowReturn {
     const canProceed = (() => {
         switch (currentStep) {
             case 1:
-                return (
+                return Boolean(
                     formData.counterpartyAddress &&
                     formData.description &&
                     formData.deadline &&

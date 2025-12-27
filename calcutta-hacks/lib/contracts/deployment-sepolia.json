@@ -2,10 +2,10 @@
   "network": "sepolia",
   "chainId": 11155111,
   "deployer": "0x7D56dD4A608C28699FFdC1cE0E28000b936e0273",
-  "deployedAt": "2025-12-27T07:26:37.890Z",
+  "deployedAt": "2025-12-27T10:00:13.326Z",
   "contracts": {
     "DisputeModule": {
-      "address": "0xB0e903eBC88E691863D110Ae755acc804F11d5F2",
+      "address": "0x60cD76B89b14d746922303685062C7512b07a626",
       "abi": [
         {
           "type": "constructor",
@@ -1041,7 +1041,7 @@
         }
       ],
       "protocolAddress": "0x7D56dD4A608C28699FFdC1cE0E28000b936e0273",
-      "disputeModuleAddress": "0xB0e903eBC88E691863D110Ae755acc804F11d5F2"
+      "disputeModuleAddress": "0x60cD76B89b14d746922303685062C7512b07a626"
     }
   }
 }

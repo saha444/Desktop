@@ -203,7 +203,7 @@ function DisputeMarketCard({ market }: { market: DisputeMarket }) {
 
 export default function Dashboard() {
     const router = useRouter()
-    const { isConnected, address, isInitialized } = useWallet()
+    const { isConnected, address, isInitialized, disconnect } = useWallet()
     const { escrows, disputeMarkets, isLoading, error, refresh } = useDashboard()
 
     // Redirect to connect page if not connected (only after wallet is initialized)
@@ -262,6 +262,16 @@ export default function Dashboard() {
                                     className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
                                 />
                                 Refresh
+                            </button>
+
+                            {/* Disconnect Button */}
+                            <button
+                                onClick={disconnect}
+                                className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-all hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+                                title="Disconnect wallet"
+                            >
+                                <Wallet className="h-4 w-4" />
+                                Disconnect
                             </button>
                         </div>
                     </div>

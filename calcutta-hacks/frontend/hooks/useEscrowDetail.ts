@@ -405,9 +405,11 @@ export function useEscrowDetail(escrowAddress: string): UseEscrowDetailReturn {
             if (!provider) throw new Error("No provider available")
 
             if (isContractData) {
-                const signer = await provider.getSigner()
-                const contract = getEscrowContract(escrowAddress, signer)
-                const tx = await contract.openDispute()
+                // Import the openDispute function from contract utilities
+                const { openDispute: openDisputeContract } = await import("@/lib/contracts")
+
+                console.log("Opening dispute through DisputeModule...")
+                const tx = await openDisputeContract(provider, escrowAddress)
                 console.log("Open dispute transaction submitted:", tx.hash)
                 await tx.wait()
                 console.log("Open dispute transaction confirmed!")

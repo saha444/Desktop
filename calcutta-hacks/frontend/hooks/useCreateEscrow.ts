@@ -253,15 +253,25 @@ export function useCreateEscrow(): UseCreateEscrowReturn {
         setDeployError(null);
 
         try {
-            // Simulate deployment delay (in production, this would deploy the actual contract)
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            // Get provider from window.ethereum
+            if (typeof window === "undefined" || !window.ethereum) {
+                throw new Error("MetaMask is not installed");
+            }
 
-            // Generate mock escrow address for demo
-            // In production, this would be the actual deployed contract address
-            const mockAddress = "0x" + Array(40)
-                .fill(0)
-                .map(() => Math.floor(Math.random() * 16).toString(16))
-                .join("");
+            const { BrowserProvider } = await import("ethers");
+            const { createEscrow } = await import("@/lib/contracts");
+
+            const provider = new BrowserProvider(window.ethereum);
+
+            // Deploy real escrow contract
+            console.log("Deploying escrow contract...");
+            const escrowAddress = await createEscrow(
+                provider,
+                formData.counterpartyAddress,
+                formData.milestoneValue
+            );
+
+            console.log("Escrow deployed to:", escrowAddress);
 
             // Store the escrow in localStorage for dashboard tracking
             const ESCROWS_STORAGE_KEY = "paycheck_escrows";
@@ -275,7 +285,7 @@ export function useCreateEscrow(): UseCreateEscrowReturn {
             })();
 
             storedEscrows.push({
-                address: mockAddress,
+                address: escrowAddress,
                 role: "client", // Creator is the client
                 counterparty: formData.counterpartyAddress,
                 milestoneValue: formData.milestoneValue,
@@ -283,11 +293,13 @@ export function useCreateEscrow(): UseCreateEscrowReturn {
             });
 
             localStorage.setItem(ESCROWS_STORAGE_KEY, JSON.stringify(storedEscrows));
-            console.log("Escrow deployed and stored:", mockAddress);
+            console.log("Escrow deployed and stored:", escrowAddress);
 
-            return mockAddress;
-        } catch (err) {
-            setDeployError(err instanceof Error ? err.message : "Deployment failed");
+            return escrowAddress;
+        } catch (err: unknown) {
+            console.error("Deployment error:", err);
+            const message = err instanceof Error ? err.message : "Deployment failed";
+            setDeployError(message);
             return null;
         } finally {
             setIsDeploying(false);

@@ -23,6 +23,9 @@ export interface UseWalletReturn extends WalletState {
     switchToSepolia: () => Promise<void>;
 }
 
+// LocalStorage key for tracking manual disconnect
+const DISCONNECT_KEY = "paycheck_wallet_disconnected";
+
 export function useWallet(): UseWalletReturn {
     const [isConnected, setIsConnected] = useState(false);
     const [address, setAddress] = useState<string | null>(null);
@@ -43,6 +46,16 @@ export function useWallet(): UseWalletReturn {
             }
 
             try {
+                // Check if user manually disconnected
+                const wasDisconnected = localStorage.getItem(DISCONNECT_KEY) === "true";
+
+                if (wasDisconnected) {
+                    // User manually disconnected, don't auto-reconnect
+                    console.log("User previously disconnected, skipping auto-connect");
+                    setIsInitialized(true);
+                    return;
+                }
+
                 // eth_accounts returns currently connected accounts without prompting
                 // This detects if the wallet is actively connected in the current session
                 const accounts = await window.ethereum.request({
@@ -106,6 +119,9 @@ export function useWallet(): UseWalletReturn {
                 throw new Error("Please install MetaMask to continue");
             }
 
+            // Clear the disconnect flag when connecting
+            localStorage.removeItem(DISCONNECT_KEY);
+
             // Always request fresh account access - this prompts MetaMask popup
             const accounts = await window.ethereum.request({
                 method: "eth_requestAccounts",
@@ -128,6 +144,9 @@ export function useWallet(): UseWalletReturn {
     }, []);
 
     const disconnect = useCallback(() => {
+        // Mark that user manually disconnected
+        localStorage.setItem(DISCONNECT_KEY, "true");
+
         setIsConnected(false);
         setAddress(null);
         setChainId(null);
